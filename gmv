@@ -1,0 +1,42 @@
+#!/bin/bash
+set -ueo pipefail
+
+# Move changed git files to the requested destination.
+gmv-main() {
+    local ROOT DEST FILES
+
+    [ $# -eq 1 ] || die "Expected a single argument to gmv."
+
+    # The destination directory.
+    DEST="$1"
+
+    # The git repository root.
+    ROOT=$(git rev-parse --show-toplevel) 
+
+    # Record the changed files, including untracked.
+    git add -A -N
+
+    FILES=()
+    for FILE in $(git diff --name-only); do
+        FILES+=("$FILE")
+    done
+
+    for FILE in "${FILES[@]}"; do
+        FROM="$ROOT/$FILE"
+        TO="$DEST/$FILE"
+
+        # Create a directory for the destination if
+        # it doesn't already exist.
+        mkdir -p "$(dirname "$TO")"
+        mv "$FROM" "$TO"
+    done
+
+    git reset --hard
+}
+
+die() {
+    echo "$@" >&2
+    exit 1
+}
+
+gmv-main "$@"
